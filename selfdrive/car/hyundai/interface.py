@@ -61,10 +61,10 @@ class CarInterface(CarInterfaceBase):
 
     if opParams().get('Enable_INDI'):
       ret.lateralTuning.init('indi')
-      ret.lateralTuning.indi.outerLoopGain = 3.  # stock is 2.0.  Trying out 2.5
-      ret.lateralTuning.indi.innerLoopGain = 2.
+      ret.lateralTuning.indi.outerLoopGain = 2.1  # stock is 2.0.  Trying out 2.5
+      ret.lateralTuning.indi.innerLoopGain = 3.1
       ret.lateralTuning.indi.timeConstant = 1.4
-      ret.lateralTuning.indi.actuatorEffectiveness = 2.
+      ret.lateralTuning.indi.actuatorEffectiveness = 1.4
 
     if candidate in [CAR.SANTA_FE, CAR.SANTA_FE_2017]:
       ret.mass = 3982. * CV.LB_TO_KG + STD_CARGO_KG
@@ -92,10 +92,10 @@ class CarInterface(CarInterfaceBase):
       ret.steerRatio = 15.4
       ret.minSteerSpeed = 32 * CV.MPH_TO_MS
     elif candidate == CAR.HYUNDAI_GENESIS:
-      ret.mass = 2060. + STD_CARGO_KG
+      ret.mass = 2140. + STD_CARGO_KG
       ret.wheelbase = 3.01
-      ret.steerRatio = 16.5
-      ret.minSteerSpeed = 55 * CV.KPH_TO_MS
+      ret.steerRatio = 15.5
+      ret.minSteerSpeed = 0 * CV.KPH_TO_MS
     elif candidate == CAR.GENESIS_G70:
       ret.lateralTuning.init('indi')
       ret.lateralTuning.indi.innerLoopGain = 3.0
