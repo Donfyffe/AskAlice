@@ -242,7 +242,7 @@ FW_VERSIONS = {
     (Ecu.eps, 0x7d4, None): [b'\xf1\x00TM  MDPS C 1.00 1.00 56340-S2000 8409', ],
     (Ecu.engine, 0x7e0, None): [b'\x01TJFAJNU06F201H03', ],
   },
-  CAR.KIA_FORTE: {
+ CAR.KIA_FORTE: {
     (Ecu.eps, 0x7d4, None): [b'\xf1\x00BD  MDPS C 1.00 1.04 56310/M6000 4BDDC104', ],
     (Ecu.engine, 0x7e0, None): [b'\xf1\x81616B1051\x00\x00\x00\x00\x00\x00\x00\x00', ],
   },
@@ -250,7 +250,6 @@ FW_VERSIONS = {
     (Ecu.engine, 0x7e0, None): [b'\xf1\x81616B1051\x00\x00\x00\x00\x00\x00\x00\x00', ],
   },
 }
-
 CHECKSUM = {
   "crc8": [CAR.SANTA_FE, CAR.SONATA, CAR.SONATA_HEV, CAR.PALISADE],
   "6B": [CAR.KIA_SORENTO, CAR.HYUNDAI_GENESIS],
