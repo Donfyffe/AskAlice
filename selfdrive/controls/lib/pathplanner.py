@@ -20,7 +20,7 @@ LaneChangeDirection = log.PathPlan.LaneChangeDirection
 LOG_MPC = os.environ.get('LOG_MPC', False)
 
 LANE_CHANGE_SPEED_MIN = 35 * CV.MPH_TO_MS
-LANE_CHANGE_TIME_MAX = 10.
+LANE_CHANGE_TIME_MAX = 7.
 
 sadBP = [0., 5., 10., 25.]
 sadV = [.3, .3, .2, .1]
