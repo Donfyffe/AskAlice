@@ -100,9 +100,9 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     deviceFalling @90;
     fanMalfunction @91;
     cameraMalfunction @92;
-    manualSteeringRequired @94;
-    manualSteeringRequiredBlinkersOn @95;
-    autoHoldActivated @96;
+    visiononlyWarning @ 94;
+    belowSteerSpeedDing @ 95;
+    startupOneplus @82;
 
     gasUnavailableDEPRECATED @3;
     dataNeededDEPRECATED @16;
@@ -115,8 +115,7 @@ struct CarEvent @0x9b1657f34caf3ad3 {
     invalidGiraffeHondaDEPRECATED @49;
     invalidGiraffeToyotaDEPRECATED @60;
     whitePandaUnsupportedDEPRECATED @81;
-    startupGreyPanda @82;
-    canErrorPersistentDEPRECATED @83;
+    commIssueWarningDEPRECATED @83;
     focusRecoverActiveDEPRECATED @86;
     neosUpdateRequiredDEPRECATED @88;
     modelLagWarningDEPRECATED @93;
@@ -171,21 +170,14 @@ struct CarState {
   leftBlinker @20 :Bool;
   rightBlinker @21 :Bool;
   genericToggle @23 :Bool;
-  distanceToggle @37 :Float32;
-  laneDepartureToggle @38 :Bool;
 
   # lock info
   doorOpen @24 :Bool;
   seatbeltUnlatched @25 :Bool;
   canValid @26 :Bool;
 
-
   # clutch (manual transmission only)
   clutchPressed @28 :Bool;
-
-  readdistancelines @39 :Float32;
-  lkMode @40 :Bool;
-  engineRPM @41 :Float32;
 
   # which packets this state came from
   canMonoTimes @12: List(UInt64);
@@ -193,9 +185,6 @@ struct CarState {
   # blindspot sensors
   leftBlindspot @33 :Bool; # Is there something blocking the left lane change
   rightBlindspot @34 :Bool; # Is there something blocking the right lane change
-
-  # autoHold Active Information
-  autoHoldActivated @42 :Bool;
 
   struct WheelSpeeds {
     # optional wheel speeds
@@ -326,6 +315,9 @@ struct CarControl {
     leftLaneVisible @7: Bool;
     rightLaneDepart @8: Bool;
     leftLaneDepart @9: Bool;
+    leadDistance @10:Float32;
+    leadvRel @11:Float32;
+    leadyRel @12:Float32;
 
     enum VisualAlert {
       # these are the choices from the Honda
@@ -338,7 +330,6 @@ struct CarControl {
       seatbeltUnbuckled @5;
       speedTooHigh @6;
       ldw @7;
-      autoHoldActivated @8;
     }
 
     enum AudibleAlert {
@@ -353,6 +344,8 @@ struct CarControl {
       chimeWarningRepeat @6;
       chimePrompt @7;
       chimeWarning2Repeat @8;
+      chimeDing @9;
+      chimeDingRepeat @ 10;
     }
   }
 }
@@ -412,6 +405,9 @@ struct CarParams {
   steerRateCost @33 :Float32; # Lateral MPC cost on steering rate
   steerControlType @34 :SteerControlType;
   radarOffCan @35 :Bool; # True when radar objects aren't visible on CAN
+  minSpeedCan @51 :Float32; # Minimum vehicle speed from CAN (below this value drops to 0)
+  stoppingBrakeRate @52 :Float32; # brake_travel/s while trying to stop
+  startingBrakeRate @53 :Float32; # brake_travel/s while releasing on restart
 
   steerActuatorDelay @36 :Float32; # Steering wheel actuator delay in seconds
   openpilotLongitudinalControl @37 :Bool; # is openpilot doing the longitudinal control?
@@ -424,6 +420,16 @@ struct CarParams {
   communityFeature @46: Bool;  # true if a community maintained feature is detected
   fingerprintSource @49: FingerprintSource;
   networkLocation @50 :NetworkLocation;  # Where Panda/C2 is integrated into the car's CAN network
+  mdpsHarness @54: Bool;
+  sasBus @55: Int8;
+  fcaBus @56: Int8;
+  bsmAvailable @57: Bool;
+  lfaAvailable @58: Bool;
+  sccBus @59: Int8;
+  radarDisablePossible @60: Bool;
+  lvrAvailable @61: Bool;
+  evgearAvailable @62: Bool;
+  emsAvailable @63: Bool;
 
   struct LateralParams {
     torqueBP @0 :List(Int32);
@@ -436,6 +442,8 @@ struct CarParams {
     kiBP @2 :List(Float32);
     kiV @3 :List(Float32);
     kf @4 :Float32;
+    kfV @5 :List(Float32);
+    kfBP @6 :List(Float32);
   }
 
   struct LongitudinalPIDTuning {
@@ -445,6 +453,8 @@ struct CarParams {
     kiV @3 :List(Float32);
     deadzoneBP @4 :List(Float32);
     deadzoneV @5 :List(Float32);
+    kfBP @6 :List(Float32);
+    kfV @7 :List(Float32);
   }
 
   struct LateralINDITuning {
@@ -494,6 +504,7 @@ struct CarParams {
     subaruLegacy @22;  # pre-Global platform
     hyundaiLegacy @23;
     hyundaiCommunity @24;
+    hyundaiCommunityNonscc @25;
   }
 
   enum SteerControlType {
