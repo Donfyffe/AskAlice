@@ -25,8 +25,8 @@ int write_param_float(float param, const char* param_name, bool persistent_param
 }
 
 void ui_init(UIState *s) {
-  s->sm = new SubMaster({"modelV2", "controlsState", "uiLayoutState", "liveCalibration", "radarState", "thermal", "frame",
-                         "health", "carParams", "ubloxGnss", "driverState", "dMonitoringState", "sensorEvents", "carState", "liveParameters"});
+  s->sm = new SubMaster({"modelV2", "controlsState", "uiLayoutState", "liveCalibration", "radarState", "thermal",
+                         "health", "carParams", "ubloxGnss", "driverState", "dMonitoringState", "sensorEvents", "carState", "gpsLocationExternal"});
 
   s->started = false;
   s->status = STATUS_OFFROAD;
@@ -120,12 +120,12 @@ void update_sockets(UIState *s) {
     auto event = sm["controlsState"];
     scene.controls_state = event.getControlsState();
 
+    // TODO: the alert stuff shouldn't be handled here
     s->scene.angleSteers = scene.controls_state.getAngleSteers();
     s->scene.steerOverride= scene.controls_state.getSteerOverride();
     s->scene.output_scale = scene.controls_state.getLateralControlState().getPidState().getOutput();
     s->scene.angleSteersDes = scene.controls_state.getAngleSteersDes();
 
-    // TODO: the alert stuff shouldn't be handled here
     auto alert_sound = scene.controls_state.getAlertSound();
     if (scene.alert_type.compare(scene.controls_state.getAlertType()) != 0) {
       if (alert_sound == AudibleAlert::NONE) {
@@ -143,11 +143,8 @@ void update_sockets(UIState *s) {
       s->status = STATUS_WARNING;
     } else if (alertStatus == cereal::ControlsState::AlertStatus::CRITICAL) {
       s->status = STATUS_ALERT;
-    } else if (scene.controls_state.getEnabled()){
-      s->status = (s->longitudinal_control)? STATUS_ENGAGED_OPLONG:STATUS_ENGAGED;
-    }
-    else {
-      s->status = STATUS_DISENGAGED;
+    } else{
+      s->status = scene.controls_state.getEnabled() ? STATUS_ENGAGED : STATUS_DISENGAGED;
     }
 
     float alert_blinkingrate = scene.controls_state.getAlertBlinkingRate();
@@ -168,12 +165,6 @@ void update_sockets(UIState *s) {
       }
     }
   }
-
-  if (sm.updated("liveParameters")) {
-    auto data = sm["liveParameters"].getLiveParameters();
-    s->scene.steerRatio=data.getSteerRatio();
-  }
-  
   if (sm.updated("radarState")) {
     auto data = sm["radarState"].getRadarState();
     scene.lead_data[0] = data.getLeadOne();
@@ -215,12 +206,18 @@ void update_sockets(UIState *s) {
   }
   if (sm.updated("thermal")) {
     scene.thermal = sm["thermal"].getThermal();
+    s->scene.cpuTemp = scene.thermal.getCpu()[0];
+    s->scene.cpuPerc = scene.thermal.getCpuPerc();
   }
   if (sm.updated("ubloxGnss")) {
     auto data = sm["ubloxGnss"].getUbloxGnss();
     if (data.which() == cereal::UbloxGnss::MEASUREMENT_REPORT) {
       scene.satelliteCount = data.getMeasurementReport().getNumMeas();
+      s->scene.satelliteCount = scene.satelliteCount;
     }
+    auto data2 = sm["gpsLocationExternal"].getGpsLocationExternal();
+    s->scene.gpsAccuracyUblox = data2.getAccuracy();
+    s->scene.altitudeUblox = data2.getAltitude();
   }
   if (sm.updated("health")) {
     auto health = sm["health"].getHealth();
@@ -242,17 +239,12 @@ void update_sockets(UIState *s) {
   } else if ((sm.frame - sm.rcv_frame("dMonitoringState")) > UI_FREQ/2) {
     scene.frontview = false;
   }
-
   if (sm.updated("carState")) {
     auto data = sm["carState"].getCarState();
-    if(scene.leftBlinker!=data.getLeftBlinker() || scene.rightBlinker!=data.getRightBlinker()){
-      scene.blinker_blinkingrate = 50;
-    }
-    scene.brakeLights = data.getBrakeLights();
-    scene.leftBlinker = data.getLeftBlinker();
-    scene.rightBlinker = data.getRightBlinker();
-    scene.leftblindspot = data.getLeftBlindspot();
-    scene.rightblindspot = data.getRightBlindspot();
+    s->scene.brakeLights = data.getBrakeLights();
+    s->scene.engineRPM = data.getEngineRPM();
+    s->scene.aEgo = data.getAEgo();
+    s->scene.steeringTorqueEps = data.getSteeringTorqueEps();
   } 
 
   if (sm.updated("sensorEvents")) {
@@ -292,8 +284,8 @@ void ui_update(UIState *s) {
     s->scene.alert_size = cereal::ControlsState::AlertSize::NONE;
   }
 
-  // Handle controls/fcamera timeout
-  if (s->started && !s->scene.frontview && ((s->sm)->frame - s->started_frame) > 10*UI_FREQ) {
+  // Handle controls timeout
+  if (s->started && !s->scene.frontview && ((s->sm)->frame - s->started_frame) > 5*UI_FREQ) {
     if ((s->sm)->rcv_frame("controlsState") < s->started_frame) {
       // car is started, but controlsState hasn't been seen at all
       s->scene.alert_text1 = "openpilot Unavailable";
@@ -301,8 +293,7 @@ void ui_update(UIState *s) {
       s->scene.alert_size = cereal::ControlsState::AlertSize::MID;
     } else if (((s->sm)->frame - (s->sm)->rcv_frame("controlsState")) > 5*UI_FREQ) {
       // car is started, but controls is lagging or died
-      if (s->scene.alert_text2 != "Controls Unresponsive" &&
-          s->scene.alert_text1 != "Camera Malfunction") {
+      if (s->scene.alert_text2 != "Controls Unresponsive") {
         s->sound->play(AudibleAlert::CHIME_WARNING_REPEAT);
         LOGE("Controls unresponsive");
       }
@@ -311,18 +302,6 @@ void ui_update(UIState *s) {
       s->scene.alert_text2 = "Controls Unresponsive";
       s->scene.alert_size = cereal::ControlsState::AlertSize::FULL;
       s->status = STATUS_ALERT;
-    }
-
-    const uint64_t frame_pkt = (s->sm)->rcv_frame("frame");
-    const uint64_t frame_delayed = (s->sm)->frame - frame_pkt;
-    const uint64_t since_started = (s->sm)->frame - s->started_frame;
-    if ((frame_pkt > s->started_frame || since_started > 15*UI_FREQ) && frame_delayed > 5*UI_FREQ) {
-      // controls is fine, but rear camera is lagging or died
-      s->scene.alert_text1 = "Camera Malfunction";
-      s->scene.alert_text2 = "Contact Support";
-      s->scene.alert_size = cereal::ControlsState::AlertSize::FULL;
-      s->status = STATUS_DISENGAGED;
-      s->sound->stop();
     }
   }
 
@@ -337,6 +316,8 @@ void ui_update(UIState *s) {
       s->scene.athenaStatus = NET_CONNECTED;
     } else {
       s->scene.athenaStatus = NET_ERROR;
+  
+
     }
   }
 }
