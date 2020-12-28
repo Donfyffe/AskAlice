@@ -420,14 +420,14 @@ static void ui_draw_vision_event(UIState *s) {
       nvgBeginPath(s->vg);
       nvgCircle(s->vg, bg_wheel_x, (bg_wheel_y + (bdr_s*1.5)), bg_wheel_size);
       if (is_oplong) {
-        nvgFillColor(s->vg, nvgRGBA(0, 102, 0, 255));
+        nvgFillColor(s->vg, nvgRGBA(105, 105, 105, 105));
       }
       else if (is_engaged) {
-        nvgFillColor(s->vg, nvgRGBA(102, 255, 102, 255));
+        nvgFillColor(s->vg, nvgRGBA(0, 153, 255, 255));
       } else if (is_warning) {
         nvgFillColor(s->vg, COLOR_OCHRE);
       } else if (is_engageable) {
-        nvgFillColor(s->vg, nvgRGBA(23, 51, 73, 255));
+        nvgFillColor(s->vg, nvgRGBA(0, 102, 255, 255));
       }
       nvgFill(s->vg);
       img_wheel_alpha = 1.0f;
@@ -473,8 +473,8 @@ static void ui_draw_driver_view(UIState *s) {
   ui_draw_rect(s->vg, scene->is_rhd ? valid_frame_x : valid_frame_x + box_h / 2, box_y, valid_frame_w - box_h / 2, box_h, COLOR_BLACK_ALPHA(144));
 
   // borders
-  ui_draw_rect(s->vg, frame_x, box_y, valid_frame_x - frame_x, box_h, nvgRGBA(255,255,0, 255));
-  ui_draw_rect(s->vg, valid_frame_x + valid_frame_w, box_y, frame_w - valid_frame_w - (valid_frame_x - frame_x), box_h, nvgRGBA(255,255,0, 255));
+  ui_draw_rect(s->vg, frame_x, box_y, valid_frame_x - frame_x, box_h, nvgRGBA(255, 255, 0, 255));
+  ui_draw_rect(s->vg, valid_frame_x + valid_frame_w, box_y, frame_w - valid_frame_w - (valid_frame_x - frame_x), box_h, nvgRGBA(255, 255, 0, 255));
 
   // draw face box
   if (scene->dmonitoring_state.getFaceDetected()) {
