@@ -423,11 +423,11 @@ static void ui_draw_vision_event(UIState *s) {
         nvgFillColor(s->vg, nvgRGBA(105, 105, 105, 105));
       }
       else if (is_engaged) {
-        nvgFillColor(s->vg, nvgRGBA(0, 0, 255, 255));
+        nvgFillColor(s->vg, nvgRGBA(0, 204, 0, 255));
       } else if (is_warning) {
         nvgFillColor(s->vg, COLOR_OCHRE);
       } else if (is_engageable) {
-        nvgFillColor(s->vg, nvgRGBA(0, 0, 153, 255));
+        nvgFillColor(s->vg, nvgRGBA(0, 102, 0, 255));
       }
       nvgFill(s->vg);
       img_wheel_alpha = 1.0f;
